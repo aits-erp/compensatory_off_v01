@@ -1,0 +1,43 @@
+[
+  {
+    "doctype": "Custom Field",
+    "dt": "HR Settings",
+    "fieldname": "custom_comp_off_leave_type",
+    "fieldtype": "Link",
+    "insert_after": "leave_approver_mandatory_in_leave_application",
+    "label": "Compensatory Off Leave Type",
+    "name": "HR Settings-custom_comp_off_leave_type",
+    "options": "Leave Type"
+  },
+  {
+    "doctype": "Custom Field",
+    "dt": "Leave Application",
+    "fieldname": "custom_comp_off_source_request",
+    "fieldtype": "Link",
+    "insert_after": "leave_type",
+    "label": "Compensatory Leave Request",
+    "name": "Leave Application-custom_comp_off_source_request",
+    "options": "Compensatory Leave Request"
+  },
+  {
+    "doctype": "Custom Field",
+    "dt": "Leave Application",
+    "fetch_from": "custom_comp_off_source_request.work_from_date",
+    "fieldname": "custom_comp_off_worked_on",
+    "fieldtype": "Date",
+    "insert_after": "custom_comp_off_source_request",
+    "label": "Worked on Holiday",
+    "name": "Leave Application-custom_comp_off_worked_on",
+    "read_only": 1
+  },
+  {
+    "doctype": "Custom Field",
+    "dt": "Leave Application",
+    "fieldname": "custom_related_leave_application",
+    "fieldtype": "Link",
+    "insert_after": "custom_comp_off_worked_on",
+    "label": "Related Leave Application",
+    "name": "Leave Application-custom_related_leave_application",
+    "options": "Leave Application"
+  }
+]

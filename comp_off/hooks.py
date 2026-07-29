@@ -5,10 +5,42 @@ app_description = "compansatory off customization"
 app_email = "nikhil@aitsind.com"
 app_license = "mit"
 
+# Leave Application stays a standard HRMS document.  These hooks only add a
+# source-reference and validation around the existing Compensatory Leave flow.
+doctype_js = {
+	"Leave Application": "public/js/leave_application.js",
+}
+
+doc_events = {
+	"Leave Application": {
+		"validate": "comp_off.events.leave_application.validate_comp_off_source",
+	}
+}
+
+# Custom Fields are standard Frappe metadata, not custom business DocTypes.
+# Keep them in fixtures so every environment receives the same fields on migrate.
+fixtures = [
+	{
+		"dt": "Custom Field",
+		"filters": [
+			[
+				"name",
+				"in",
+				[
+					"HR Settings-custom_comp_off_leave_type",
+					"Leave Application-custom_comp_off_source_request",
+					"Leave Application-custom_comp_off_worked_on",
+					"Leave Application-custom_related_leave_application",
+				],
+			]
+		],
+	}
+]
+
 # Apps
 # ------------------
 
-# required_apps = []
+required_apps = ["hrms"]
 
 # Each item in the list will be shown as an app in the apps page
 # add_to_apps_screen = [
@@ -246,4 +278,3 @@ app_license = "mit"
 # ------------
 # List of apps whose translatable strings should be excluded from this app's translations.
 # ignore_translatable_strings_from = []
-

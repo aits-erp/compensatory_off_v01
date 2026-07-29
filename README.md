@@ -1,6 +1,8 @@
-### Comp Off
+# Comp Off
 
-compansatory off customization
+Compensatory-off enhancements for Frappe HRMS using only standard HRMS
+documents and Custom Fields. The app does not create custom DocTypes or modify
+the standard leave ledger.
 
 ### Installation
 
@@ -31,3 +33,18 @@ Pre-commit is configured to use the following tools for checking and formatting 
 ### License
 
 mit
+
+## Setup
+
+1. Install the app and run `bench --site <site> migrate`.
+2. In **HR Settings**, set **Compensatory Off Leave Type** to the standard
+   Leave Type that has **Is Compensatory** enabled.
+3. Ensure the employee has a Holiday List, submitted Present Attendance on the
+   worked holiday, and a submitted standard Compensatory Leave Request.
+4. When applying for Compensatory Off, select that request in the Leave
+   Application. The worked holiday date is displayed automatically.
+
+Normal leave and Compensatory Off must be separate standard Leave Applications,
+because each HRMS Leave Application has one leave type and one ledger entry.
+Create one standard Compensatory Leave Request per worked holiday date; this
+keeps each compensatory credit traceable to its eventual leave application.
