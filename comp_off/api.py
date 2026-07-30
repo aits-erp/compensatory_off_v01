@@ -15,8 +15,8 @@ def get_available_comp_off_requests(employee, leave_type):
 	if not employee or not leave_type:
 		return []
 
-	configured_leave_type = frappe.db.get_single_value("HR Settings", "custom_comp_off_leave_type")
-	if leave_type != configured_leave_type:
+	# Use the standard Leave Type setting. No HR Settings custom field is needed.
+	if not frappe.db.get_value("Leave Type", leave_type, "is_compensatory"):
 		return []
 
 	requests = frappe.get_list(

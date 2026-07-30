@@ -12,11 +12,9 @@ def validate_comp_off_source(doc, method=None):
 	and ledger entries.  This app only makes the standard Compensatory Leave
 	Request traceable from the standard Leave Application and prevents its reuse.
 	"""
-	comp_off_leave_type = frappe.db.get_single_value("HR Settings", "custom_comp_off_leave_type")
-
-	# A site may not have configured the app yet.  Leave all standard behaviour
-	# unchanged until HR selects the compensatory leave type in HR Settings.
-	if not comp_off_leave_type or doc.leave_type != comp_off_leave_type:
+	# Use the standard Leave Type flag rather than duplicating configuration in
+	# HR Settings. Non-compensatory leave applications retain native HRMS flow.
+	if not frappe.db.get_value("Leave Type", doc.leave_type, "is_compensatory"):
 		return
 
 	if not doc.custom_comp_off_source_request:

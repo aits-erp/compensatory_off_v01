@@ -37,8 +37,7 @@ mit
 ## Setup
 
 1. Install the app and run `bench --site <site> migrate`.
-2. In **HR Settings**, set **Compensatory Off Leave Type** to the standard
-   Leave Type that has **Is Compensatory** enabled.
+2. Ensure the selected standard Leave Type has **Is Compensatory** enabled.
 3. Ensure the employee has a Holiday List, submitted Present Attendance on the
    worked holiday, and a submitted standard Compensatory Leave Request.
 4. When applying for Compensatory Off, select that request in the Leave

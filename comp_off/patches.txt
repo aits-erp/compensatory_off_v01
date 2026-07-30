@@ -4,4 +4,3 @@
 
 [post_model_sync]
 # Patches added in this section will be executed after doctypes are migrated
-comp_off.patches.v0_0.remove_related_leave_application_field

@@ -5,8 +5,8 @@ app_description = "compansatory off customization"
 app_email = "nikhil@aitsind.com"
 app_license = "mit"
 
-# Leave Application stays a standard HRMS document.  These hooks only add a
-# source-reference and validation around the existing Compensatory Leave flow.
+# Leave Application stays a standard HRMS document. These hooks only add a
+# source reference and validation around the existing Compensatory Leave flow.
 doctype_js = {
 	"Leave Application": "public/js/leave_application.js",
 }
@@ -18,7 +18,7 @@ doc_events = {
 }
 
 # Custom Fields are standard Frappe metadata, not custom business DocTypes.
-# Keep them in fixtures so every environment receives the same fields on migrate.
+# Only the two fields required by the application are exported.
 fixtures = [
 	{
 		"dt": "Custom Field",
@@ -27,10 +27,8 @@ fixtures = [
 				"name",
 				"in",
 				[
-					"HR Settings-custom_comp_off_leave_type",
-					"Leave Application-custom_comp_off_source_request",
 					"Leave Application-custom_comp_off_available_work_date",
-					"Leave Application-custom_comp_off_worked_on",
+					"Leave Application-custom_comp_off_source_request",
 				],
 			]
 		],
