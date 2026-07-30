@@ -9,6 +9,7 @@ readme = "README.md"
 dynamic = ["version"]
 dependencies = [
     # "frappe~=15.0.0" # Installed and managed by bench.
+    "setuptools>=68,<82",
 ]
 
 # Required by Frappe Cloud when it evaluates a custom app before installation.
