@@ -42,7 +42,9 @@ mit
 3. Ensure the employee has a Holiday List, submitted Present Attendance on the
    worked holiday, and a submitted standard Compensatory Leave Request.
 4. When applying for Compensatory Off, select that request in the Leave
-   Application. The worked holiday date is displayed automatically.
+   Application. The **Available Worked Holiday** field lists unused submitted
+   Compensatory Leave Requests by worked date; selecting one sets the request
+   reference and displays the worked holiday automatically.
 
 Normal leave and Compensatory Off must be separate standard Leave Applications,
 because each HRMS Leave Application has one leave type and one ledger entry.

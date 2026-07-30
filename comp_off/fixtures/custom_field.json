@@ -12,10 +12,20 @@
   {
     "doctype": "Custom Field",
     "dt": "Leave Application",
+    "fieldname": "custom_comp_off_available_work_date",
+    "fieldtype": "Select",
+    "insert_after": "leave_type",
+    "label": "Available Worked Holiday",
+    "name": "Leave Application-custom_comp_off_available_work_date",
+    "description": "Select an unused, approved compensatory-off credit."
+  },
+  {
+    "doctype": "Custom Field",
+    "dt": "Leave Application",
     "fieldname": "custom_comp_off_source_request",
     "fieldtype": "Link",
-    "insert_after": "leave_type",
-    "label": "Compensatory Leave Request",
+    "insert_after": "custom_comp_off_available_work_date",
+    "label": "Compensatory Leave Request Reference",
     "name": "Leave Application-custom_comp_off_source_request",
     "options": "Compensatory Leave Request"
   },
@@ -29,15 +39,5 @@
     "label": "Worked on Holiday",
     "name": "Leave Application-custom_comp_off_worked_on",
     "read_only": 1
-  },
-  {
-    "doctype": "Custom Field",
-    "dt": "Leave Application",
-    "fieldname": "custom_related_leave_application",
-    "fieldtype": "Link",
-    "insert_after": "custom_comp_off_worked_on",
-    "label": "Related Leave Application",
-    "name": "Leave Application-custom_related_leave_application",
-    "options": "Leave Application"
   }
 ]

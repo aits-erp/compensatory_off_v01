@@ -29,8 +29,8 @@ fixtures = [
 				[
 					"HR Settings-custom_comp_off_leave_type",
 					"Leave Application-custom_comp_off_source_request",
+					"Leave Application-custom_comp_off_available_work_date",
 					"Leave Application-custom_comp_off_worked_on",
-					"Leave Application-custom_related_leave_application",
 				],
 			]
 		],
