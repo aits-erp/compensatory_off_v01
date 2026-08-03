@@ -1,0 +1,21 @@
+{
+ "doctype": "DocType",
+ "istable": 1,
+ "editable_grid": 1,
+ "module": "Comp Off",
+ "name": "Comp Off Source Request",
+ "field_order": ["compensatory_leave_request"],
+ "fields": [
+  {
+   "fieldname": "compensatory_leave_request",
+   "fieldtype": "Link",
+   "label": "Compensatory Leave Request",
+   "options": "Compensatory Leave Request",
+   "in_list_view": 1,
+   "reqd": 1
+  }
+ ],
+ "permissions": [],
+ "sort_field": "modified",
+ "sort_order": "DESC"
+}
