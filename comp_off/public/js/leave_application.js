@@ -17,6 +17,7 @@ frappe.ui.form.on("Leave Application", {
 
 	custom_comp_off_source_request(frm) {
 		refresh_worked_holiday_summary(frm);
+		check_comp_off_fifo_order(frm);
 	},
 });
 
@@ -76,99 +77,39 @@ function refresh_worked_holiday_summary(frm) {
 		});
 }
 
-// frappe.ui.form.on("Leave Application", {
-// 	refresh(frm) {
-// 		configure_comp_off_fields(frm);
-// 	},
+function check_comp_off_fifo_order(frm) {
+	const selectedNames = (frm.doc.custom_comp_off_source_request || [])
+		.map((row) => row.compensatory_leave_request)
+		.filter(Boolean);
 
-// 	employee(frm) {
-// 		configure_comp_off_fields(frm);
-// 	},
+	if (!selectedNames.length || !frm.doc.employee || !frm.doc.leave_type) {
+		return;
+	}
 
-// 	leave_type(frm) {
-// 		configure_comp_off_fields(frm);
-// 	},
+	frappe.call({
+		method: "comp_off.api.get_available_comp_off_dates",
+		args: { employee: frm.doc.employee, leave_type: frm.doc.leave_type },
+		callback(response) {
+			const available = response.message || []; // already oldest-first
+			if (!available.length) return;
 
-// 	custom_comp_off_available_work_date(frm) {
-// 		const selectedRequest = frm._compOffRequestsByOption?.get(
-// 			frm.doc.custom_comp_off_available_work_date
-// 		);
+			// The "correct" FIFO picks are the oldest N, N = number selected.
+			const expected = available.slice(0, selectedNames.length);
+			const skippedOlder = expected.filter((r) => !selectedNames.includes(r.name));
 
-// 		if (selectedRequest) {
-// 			frm.set_value("custom_comp_off_source_request", selectedRequest.name);
-// 		} else if (!frm.doc.custom_comp_off_available_work_date) {
-// 			frm.set_value("custom_comp_off_source_request", null);
-// 		}
-// 	},
-
-// 	custom_comp_off_source_request(frm) {
-// 		configure_available_work_dates(frm);
-// 	},
-// });
-
-// function configure_comp_off_fields(frm) {
-// 	if (!frm.doc.leave_type) {
-// 		set_comp_off_field_state(frm, false);
-// 		return;
-// 	}
-
-// 	frappe.db.get_value("Leave Type", frm.doc.leave_type, "is_compensatory").then((response) => {
-// 		const isCompOff = Number(response.message?.is_compensatory || 0) === 1;
-// 		set_comp_off_field_state(frm, isCompOff);
-// 	});
-// }
-
-// function set_comp_off_field_state(frm, isCompOff) {
-// 	frm.toggle_display("custom_comp_off_available_work_date", isCompOff);
-// 	frm.set_df_property("custom_comp_off_source_request", "reqd", isCompOff);
-
-// 	if (!isCompOff) {
-// 		frm.set_value("custom_comp_off_available_work_date", null);
-// 		frm.set_value("custom_comp_off_source_request", null);
-// 	}
-
-// 	configure_comp_off_query(frm);
-// 	configure_available_work_dates(frm, isCompOff);
-// }
-
-// function configure_comp_off_query(frm) {
-// 	frm.set_query("custom_comp_off_source_request", () => ({
-// 		filters: {
-// 			employee: frm.doc.employee,
-// 			docstatus: 1,
-// 		},
-// 	}));
-// }
-
-// function configure_available_work_dates(frm, isCompOff = true) {
-// 	if (!isCompOff || !frm.doc.employee || !frm.doc.leave_type) {
-// 		frm.set_df_property("custom_comp_off_available_work_date", "options", "");
-// 		return;
-// 	}
-
-// 	frappe.call({
-// 		method: "comp_off.api.get_available_comp_off_requests",
-// 		args: {
-// 			employee: frm.doc.employee,
-// 			leave_type: frm.doc.leave_type,
-// 		},
-// 		callback(response) {
-// 			const requests = response.message || [];
-// 			frm._compOffRequestsByOption = new Map(
-// 				requests.map((request) => [request.label, request])
-// 			);
-// 			frm.set_df_property(
-// 				"custom_comp_off_available_work_date",
-// 				"options",
-// 				["", ...requests.map((request) => request.label)].join("\n")
-// 			);
-
-// 			const selectedRequest = requests.find(
-// 				(request) => request.name === frm.doc.custom_comp_off_source_request
-// 			);
-// 			if (selectedRequest && frm.doc.custom_comp_off_available_work_date !== selectedRequest.label) {
-// 				frm.set_value("custom_comp_off_available_work_date", selectedRequest.label);
-// 			}
-// 		},
-// 	});
-// }
+			if (skippedOlder.length) {
+				const dates = skippedOlder.map((r) => frappe.datetime.str_to_user(r.work_date)).join(", ");
+				frappe.show_alert(
+					{
+						message: __(
+							"Older worked-holiday credit(s) dated {0} are still unused. Consider using Compensatory Off oldest-first (FIFO).",
+							[dates]
+						),
+						indicator: "orange",
+					},
+					8
+				);
+			}
+		},
+	});
+}
