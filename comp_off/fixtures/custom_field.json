@@ -8,7 +8,7 @@
     "read_only": 1,
     "hidden": 0,
     "insert_after": "leave_type",
-    "description": "Auto-filled from the Worked Holidays selected below.",
+    "description": "Automatically assigned oldest eligible worked-holiday credits when the leave is submitted.",
     "module": "Custom",
     "name": "Leave Application-custom_comp_off_available_work_date",
     "no_copy": 1
@@ -19,11 +19,11 @@
     "fieldname": "custom_comp_off_source_request",
     "fieldtype": "Table MultiSelect",
     "options": "Comp Off Source Request",
-    "label": "Worked Holidays Used for Comp Off",
-    "hidden": 0,
+    "label": "Automatically Assigned Compensatory Credits",
+    "hidden": 1,
     "reqd": 0,
     "insert_after": "custom_comp_off_available_work_date",
-    "description": "Select one unused, approved worked-holiday credit per day of leave applied for.",
+    "description": "System-managed FIFO audit mapping. This field is not user editable.",
     "module": "Custom",
     "name": "Leave Application-custom_comp_off_source_request",
     "no_copy": 1

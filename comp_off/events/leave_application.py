@@ -1,162 +1,90 @@
 import frappe
 from frappe import _
-from frappe.utils import getdate
+from frappe.utils import flt, formatdate, getdate
 
 
-def validate_comp_off_source(doc, method=None):
-	if not frappe.db.get_value("Leave Type", doc.leave_type, "is_compensatory"):
+def assign_comp_off_sources_fifo(doc, method=None):
+	"""Automatically attach the oldest eligible earned credits before submit.
+
+	The standard HRMS leave allocation and ledger remain the source of truth for
+	balances. This mapping makes each consumed Comp Off day auditable and stops a
+	worked-holiday credit from being reused. Draft Leave Applications deliberately
+	do not reserve credits.
+	"""
+	if not _is_compensatory_leave(doc.leave_type):
 		return
 
-	source_names = [
-		row.compensatory_leave_request
-		for row in (doc.get("custom_comp_off_source_request") or [])
-		if row.compensatory_leave_request
-	]
+	required_credits = _get_required_credit_count(doc)
+	sources = _get_oldest_unused_sources(
+		doc.employee, doc.leave_type, getdate(doc.from_date), required_credits
+	)
 
-	if not source_names:
+	if len(sources) < required_credits:
 		frappe.throw(
-			_("Select the approved Compensatory Leave Request(s) that earned this leave."),
-			title=_("Compensatory Leave Request Required"),
-		)
-
-	if len(source_names) != len(set(source_names)):
-		frappe.throw(_("The same Compensatory Leave Request cannot be selected more than once."))
-
-	if doc.total_leave_days and len(source_names) != doc.total_leave_days:
-		frappe.throw(
-			_("Select exactly {0} Worked Holiday(s) to match the {0} day(s) of leave applied for.").format(
-				doc.total_leave_days
+			_("Insufficient unused Compensatory Off credits. Leave requested: {0} day(s); credits available: {1}.").format(
+				required_credits, len(sources)
 			),
-			title=_("Worked Holiday Count Mismatch"),
+			title=_("Insufficient Compensatory Off Credits"),
 		)
 
-	used_by = {
-		row.compensatory_leave_request: row.parent
-		for row in frappe.db.sql(
-			"""
-			select cosr.compensatory_leave_request, cosr.parent
-			from `tabComp Off Source Request` cosr
-			inner join `tabLeave Application` la on la.name = cosr.parent
-			where cosr.parenttype = 'Leave Application'
-			  and la.docstatus = 1
-			  and la.name != %(name)s
-			""",
-			{"name": doc.name or ""},
-			as_dict=True,
+	# Never honour source rows submitted by the browser. The server replaces them
+	# with the actual FIFO allocation at the point the leave is submitted.
+	doc.set("custom_comp_off_source_request", [])
+	for source in sources:
+		doc.append("custom_comp_off_source_request", {"compensatory_leave_request": source.name})
+
+	doc.custom_comp_off_available_work_date = ", ".join(
+		formatdate(source.work_from_date) for source in sources
+	)
+
+
+def _is_compensatory_leave(leave_type):
+	return bool(leave_type and frappe.db.get_value("Leave Type", leave_type, "is_compensatory"))
+
+
+def _get_required_credit_count(doc):
+	leave_days = flt(doc.total_leave_days)
+	if leave_days <= 0:
+		frappe.throw(_("Total leave days must be greater than zero for Compensatory Off."))
+
+	if leave_days != int(leave_days):
+		frappe.throw(
+			_("Automatic Compensatory Off currently supports full-day leave only."),
+			title=_("Half-Day Compensatory Off Not Supported"),
 		)
-	}
 
-	for source_name in source_names:
-		source = frappe.db.get_value(
-			"Compensatory Leave Request",
-			source_name,
-			["employee", "leave_type", "work_from_date", "work_end_date", "docstatus"],
-			as_dict=True,
-		)
-
-		if not source:
-			frappe.throw(_("The selected Compensatory Leave Request {0} does not exist.").format(source_name))
-		if source.docstatus != 1:
-			frappe.throw(_("Compensatory Leave Request {0} must be submitted.").format(source_name))
-		if source.employee != doc.employee:
-			frappe.throw(_("Compensatory Leave Request {0} belongs to another employee.").format(source_name))
-		if source.leave_type != doc.leave_type:
-			frappe.throw(_("The leave type of {0} does not match this Leave Application.").format(source_name))
-		if getdate(source.work_from_date) != getdate(source.work_end_date):
-			frappe.throw(_("Compensatory Leave Request {0} must cover a single worked date.").format(source_name))
-		if getdate(doc.from_date) <= getdate(source.work_end_date):
-			frappe.throw(
-				_("Compensatory Off can be used only after the worked holiday date linked to {0}.").format(source_name)
-			)
-		if source_name in used_by:
-			frappe.throw(
-				_("Compensatory Leave Request {0} is already linked to Leave Application {1}.").format(
-					source_name, frappe.bold(used_by[source_name])
-				)
-			)
-
-# """Safeguards for standard HRMS Compensatory Off leave applications."""
-
-# import frappe
-# from frappe import _
-# from frappe.utils import getdate
+	return int(leave_days)
 
 
-# def validate_comp_off_source(doc, method=None):
-# 	"""Validate the worked-holiday request linked to a Comp Off application.
-
-# 	HRMS remains responsible for normal leave validation, approval, allocation,
-# 	and ledger entries.  This app only makes the standard Compensatory Leave
-# 	Request traceable from the standard Leave Application and prevents its reuse.
-# 	"""
-# 	# Use the standard Leave Type flag rather than duplicating configuration in
-# 	# HR Settings. Non-compensatory leave applications retain native HRMS flow.
-# 	if not frappe.db.get_value("Leave Type", doc.leave_type, "is_compensatory"):
-# 		return
-
-# 	if not doc.custom_comp_off_source_request:
-# 		frappe.throw(
-# 			_("Select the approved Compensatory Leave Request that earned this leave."),
-# 			title=_("Compensatory Leave Request Required"),
-# 		)
-
-# 	source = frappe.db.get_value(
-# 		"Compensatory Leave Request",
-# 		doc.custom_comp_off_source_request,
-# 		[
-# 			"employee",
-# 			"leave_type",
-# 			"work_from_date",
-# 			"work_end_date",
-# 			"docstatus",
-# 		],
-# 		as_dict=True,
-# 	)
-
-# 	if not source:
-# 		frappe.throw(_("The selected Compensatory Leave Request does not exist."))
-
-# 	if source.docstatus != 1:
-# 		frappe.throw(_("The selected Compensatory Leave Request must be submitted."))
-
-# 	if source.employee != doc.employee:
-# 		frappe.throw(_("The selected Compensatory Leave Request belongs to another employee."))
-
-# 	if source.leave_type != doc.leave_type:
-# 		frappe.throw(_("The source request leave type must match this Leave Application."))
-
-# 	# One source field represents one earned day.  Multiple worked holidays must
-# 	# be recorded as separate standard Compensatory Leave Requests so each leave
-# 	# application retains an unambiguous audit trail.
-# 	if getdate(source.work_from_date) != getdate(source.work_end_date):
-# 		frappe.throw(
-# 			_("Select a Compensatory Leave Request for one worked holiday date only."),
-# 			title=_("Multiple Worked Dates Not Supported"),
-# 		)
-
-# 	# HRMS credits Comp Off from the day after the holiday work ends.
-# 	if getdate(doc.from_date) <= getdate(source.work_end_date):
-# 		frappe.throw(
-# 			_("Compensatory Off can be used only after the worked holiday date."),
-# 			title=_("Invalid Compensatory Off Date"),
-# 		)
-
-# 	# A source request represents a specific earned credit.  It may be linked to
-# 	# one submitted application only; drafts are intentionally reusable until one
-# 	# of them is approved and submitted.
-# 	already_used = frappe.db.exists(
-# 		"Leave Application",
-# 		{
-# 			"custom_comp_off_source_request": doc.custom_comp_off_source_request,
-# 			"docstatus": 1,
-# 			"name": ["!=", doc.name],
-# 		},
-# 	)
-
-# 	if already_used:
-# 		frappe.throw(
-# 			_("This worked-holiday credit is already linked to Leave Application {0}.").format(
-# 				frappe.bold(already_used)
-# 			),
-# 			title=_("Compensatory Credit Already Used"),
-# 		)
+def _get_oldest_unused_sources(employee, leave_type, leave_from_date, limit):
+	"""Lock and return the oldest eligible Comp Off credits for an employee."""
+	return frappe.db.sql(
+		"""
+			select request.name, request.work_from_date, request.work_end_date
+			from `tabCompensatory Leave Request` request
+			where request.employee = %(employee)s
+			  and request.leave_type = %(leave_type)s
+			  and request.docstatus = 1
+			  and request.work_from_date = request.work_end_date
+			  and request.work_end_date < %(leave_from_date)s
+			  and not exists (
+				select 1
+				from `tabComp Off Source Request` source
+				inner join `tabLeave Application` application on application.name = source.parent
+				where source.parenttype = 'Leave Application'
+				  and source.parentfield = 'custom_comp_off_source_request'
+				  and source.compensatory_leave_request = request.name
+				  and application.docstatus = 1
+			  )
+			order by request.work_from_date asc, request.creation asc
+			limit %(limit)s
+			for update
+		""",
+		{
+			"employee": employee,
+			"leave_type": leave_type,
+			"leave_from_date": leave_from_date,
+			"limit": limit,
+		},
+		as_dict=True,
+	)
