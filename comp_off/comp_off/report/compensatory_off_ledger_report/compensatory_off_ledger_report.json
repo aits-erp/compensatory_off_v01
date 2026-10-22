@@ -1,0 +1,19 @@
+{
+ "add_total_row": 0,
+ "columns": [],
+ "disable_prepared_report": 1,
+ "docstatus": 0,
+ "doctype": "Report",
+ "idx": 0,
+ "is_standard": "Yes",
+ "module": "Comp Off",
+ "name": "Compensatory Off Ledger Report",
+ "ref_doctype": "Compensatory Leave Request",
+ "report_name": "Compensatory Off Ledger Report",
+ "report_type": "Script Report",
+ "roles": [
+  {"role": "HR Manager"},
+  {"role": "HR User"},
+  {"role": "System Manager"}
+ ]
+}
