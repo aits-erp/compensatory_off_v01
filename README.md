@@ -41,13 +41,15 @@ mit
 3. Ensure the employee has a Holiday List, submitted Present Attendance on the
    worked holiday, and a submitted standard Compensatory Leave Request.
 4. When applying for Compensatory Off, select the employee, leave type, and
-   leave dates only. At final submission, the app automatically assigns the
-   oldest eligible unused worked-holiday credits (FIFO) and displays their
-   dates in **Worked Holiday Dates**.
+   leave dates only, then **Save**. The app automatically assigns the oldest
+   eligible unused worked-holiday credits (FIFO), displays their dates in
+   **Worked Holiday Dates**, and shows clickable links to the corresponding
+   **Compensatory Leave Request** records.
 
 Normal leave and Compensatory Off must be separate standard Leave Applications,
 because each HRMS Leave Application has one leave type and one ledger entry.
 Create one standard Compensatory Leave Request per worked holiday date; this
 keeps each compensatory credit traceable to its eventual leave application.
-Draft leave applications do not reserve credits. Automatic assignment supports
-full-day Compensatory Off applications; half-day Compensatory Off is rejected.
+Saved draft applications reserve their assigned credits. Cancelled or rejected
+applications release those credits. Automatic assignment supports full-day
+Compensatory Off applications; half-day Compensatory Off is rejected.

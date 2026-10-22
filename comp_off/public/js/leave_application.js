@@ -23,9 +23,9 @@ function configure_comp_off_fields(frm) {
 }
 
 function set_comp_off_field_state(frm, isCompOff) {
-	// Source rows are audit data, assigned only by the server on submission.
-	frm.toggle_display("custom_comp_off_source_request", false);
+	// Source rows are read-only audit links assigned by the server on Save.
+	frm.toggle_display("custom_comp_off_source_request", isCompOff);
 	frm.toggle_display("custom_comp_off_available_work_date", isCompOff);
 	frm.set_df_property("custom_comp_off_source_request", "read_only", 1);
-	frm.set_df_property("custom_comp_off_source_request", "hidden", 1);
+	frm.set_df_property("custom_comp_off_source_request", "hidden", !isCompOff);
 }

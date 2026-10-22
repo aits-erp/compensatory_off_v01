@@ -13,7 +13,7 @@ doctype_js = {
 
 doc_events = {
 	"Leave Application": {
-		"before_submit": "comp_off.events.leave_application.assign_comp_off_sources_fifo",
+		"validate": "comp_off.events.leave_application.assign_comp_off_sources_fifo",
 	}
 }
 

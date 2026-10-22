@@ -4,19 +4,25 @@ from frappe.utils import flt, formatdate, getdate
 
 
 def assign_comp_off_sources_fifo(doc, method=None):
-	"""Automatically attach the oldest eligible earned credits before submit.
+	"""Assign and reserve the oldest eligible earned credits on every save.
 
 	The standard HRMS leave allocation and ledger remain the source of truth for
 	balances. This mapping makes each consumed Comp Off day auditable and stops a
-	worked-holiday credit from being reused. Draft Leave Applications deliberately
-	do not reserve credits.
+	worked-holiday credit from being reused. A saved draft reserves its FIFO
+	credits until the application is cancelled or rejected.
 	"""
 	if not _is_compensatory_leave(doc.leave_type):
+		doc.set("custom_comp_off_source_request", [])
+		doc.custom_comp_off_available_work_date = ""
 		return
 
 	required_credits = _get_required_credit_count(doc)
 	sources = _get_oldest_unused_sources(
-		doc.employee, doc.leave_type, getdate(doc.from_date), required_credits
+		doc.employee,
+		doc.leave_type,
+		getdate(doc.from_date),
+		required_credits,
+		leave_application_name=doc.name,
 	)
 
 	if len(sources) < required_credits:
@@ -56,8 +62,8 @@ def _get_required_credit_count(doc):
 	return int(leave_days)
 
 
-def _get_oldest_unused_sources(employee, leave_type, leave_from_date, limit):
-	"""Lock and return the oldest eligible Comp Off credits for an employee."""
+def _get_oldest_unused_sources(employee, leave_type, leave_from_date, limit, leave_application_name):
+	"""Return unreserved FIFO credits, retaining the current application's rows."""
 	return frappe.db.sql(
 		"""
 			select request.name, request.work_from_date, request.work_end_date
@@ -74,17 +80,21 @@ def _get_oldest_unused_sources(employee, leave_type, leave_from_date, limit):
 				where source.parenttype = 'Leave Application'
 				  and source.parentfield = 'custom_comp_off_source_request'
 				  and source.compensatory_leave_request = request.name
-				  and application.docstatus = 1
+				  and application.name != %(leave_application_name)s
+				  and (
+					application.docstatus = 0
+					or (application.docstatus = 1 and application.status = 'Approved')
+				  )
 			  )
 			order by request.work_from_date asc, request.creation asc
 			limit %(limit)s
-			for update
 		""",
 		{
 			"employee": employee,
 			"leave_type": leave_type,
 			"leave_from_date": leave_from_date,
 			"limit": limit,
+			"leave_application_name": leave_application_name or "",
 		},
 		as_dict=True,
 	)

@@ -8,7 +8,7 @@
     "read_only": 1,
     "hidden": 0,
     "insert_after": "leave_type",
-    "description": "Automatically assigned oldest eligible worked-holiday credits when the leave is submitted.",
+    "description": "Automatically assigned oldest eligible worked-holiday credits when the leave is saved.",
     "module": "Custom",
     "name": "Leave Application-custom_comp_off_available_work_date",
     "no_copy": 1
@@ -19,11 +19,11 @@
     "fieldname": "custom_comp_off_source_request",
     "fieldtype": "Table MultiSelect",
     "options": "Comp Off Source Request",
-    "label": "Automatically Assigned Compensatory Credits",
-    "hidden": 1,
+    "label": "Automatically Assigned Compensatory Leave Requests",
+    "hidden": 0,
     "reqd": 0,
     "insert_after": "custom_comp_off_available_work_date",
-    "description": "System-managed FIFO audit mapping. This field is not user editable.",
+    "description": "FIFO assignments created on Save. Click a request to view the employee's worked-holiday record. The field is system managed and cannot be edited.",
     "module": "Custom",
     "name": "Leave Application-custom_comp_off_source_request",
     "no_copy": 1
