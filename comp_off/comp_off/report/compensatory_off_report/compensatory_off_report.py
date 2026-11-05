@@ -20,12 +20,12 @@
 # 		{"label": _("Division"), "fieldname": "division", "fieldtype": "Data", "width": 110},
 # 		{"label": _("Department"), "fieldname": "department", "fieldtype": "Link", "options": "Department", "width": 130},
 # 		{"label": _("Work Date"), "fieldname": "work_date", "fieldtype": "Date", "width": 100},
-# 		{"label": _("Against Date"), "fieldname": "against_date", "fieldtype": "Data", "width": 150},
+# 		{"label": _("Against Date"), "fieldname": "against_date", "fieldtype": "Data", "width": 190},
 # 		{"label": _("Leave Application ID"), "fieldname": "leave_application", "fieldtype": "Link", "options": "Leave Application", "width": 160},
 # 		{"label": _("From Date"), "fieldname": "from_date", "fieldtype": "Date", "width": 100},
 # 		{"label": _("To Date"), "fieldname": "to_date", "fieldtype": "Date", "width": 100},
 # 		{"label": _("Credit"), "fieldname": "credit", "fieldtype": "Float", "width": 80},
-# 		{"label": _("Status"), "fieldname": "status", "fieldtype": "Data", "width": 130},
+# 		{"label": _("Status"), "fieldname": "status", "fieldtype": "Data", "width": 110},
 # 		{"label": _("Utilised"), "fieldname": "utilised", "fieldtype": "Float", "width": 80},
 # 		{"label": _("Balance Credit"), "fieldname": "balance", "fieldtype": "Float", "width": 100},
 # 		{"label": _("Created By"), "fieldname": "created_by", "fieldtype": "Data", "width": 150},
@@ -147,8 +147,8 @@
 # 		order_by="from_date",
 # 	)
 
-# 	# usage[request name] -> {leave application name: {"app":..., "dates": [...], "days": x}}
-# 	usage = {r.name: {} for r in requests}
+# 	used_by_request = {r.name: 0.0 for r in requests}  # days used from each request
+# 	app_groups = {}  # leave application -> one combined row
 # 	by_emp = {}
 # 	for r in requests:
 # 		by_emp.setdefault(r.employee, []).append(r)
@@ -171,9 +171,12 @@
 # 		for d in dates:
 # 			for r in candidates:
 # 				if getdate(r.dates[0]) <= d <= getdate(r.dates[-1]):
-# 					entry = usage[r.name].setdefault(app.name, {"app": app, "dates": [], "days": 0.0})
-# 					entry["dates"].append(d)
-# 					entry["days"] += per_date
+# 					used_by_request[r.name] += per_date
+# 					group = app_groups.setdefault(
+# 						app.name, {"app": app, "request": r, "dates": [], "days": 0.0}
+# 					)
+# 					group["dates"].append(d)
+# 					group["days"] += per_date
 # 					break
 
 # 	allocation_end = {}
@@ -195,27 +198,49 @@
 # 			user_names[user] = frappe.db.get_value("User", user, "full_name") or user
 # 		return user_names[user]
 
-# 	data = []
-# 	for r in requests:
-# 		used = sum(e["days"] for e in usage[r.name].values())
-# 		balance = flt(r.credit) - used
+# 	rows = []
 
-# 		if used == 0:
-# 			status = "Available"
-# 		elif balance > 0:
-# 			status = "Partially Utilised"
-# 		else:
-# 			status = "Fully Utilised"
+# 	# 1. one row per Leave Application, with all its work dates together
+# 	for group in app_groups.values():
+# 		app = group["app"]
+# 		r = group["request"]
+# 		dates = sorted(set(group["dates"]))
+# 		rows.append(
+# 			{
+# 				"employee": r.employee,
+# 				"employee_name": r.employee_name,
+# 				"company": r.company,
+# 				"branch": r.branch,
+# 				"division": r.division,
+# 				"department": r.department,
+# 				"work_date": dates[0],
+# 				"against_date": ", ".join(formatdate(d) for d in dates),
+# 				"leave_application": app.name,
+# 				"from_date": app.from_date,
+# 				"to_date": app.to_date,
+# 				"credit": -flt(group["days"]),
+# 				"status": "Draft" if app.docstatus == 0 else app.status,
+# 				"utilised": flt(group["days"]),
+# 				"balance": 0.0,
+# 				"created_by": full_name(app.owner),
+# 				"modified_by": full_name(app.modified_by),
+# 			}
+# 		)
+
+# 	# 2. credits still left (not used by any Leave Application)
+# 	for r in requests:
+# 		balance = flt(r.credit) - used_by_request[r.name]
+# 		if balance <= 0.0001:
+# 			continue
+
 # 		end = allocation_end.get(r.leave_allocation)
 # 		expired = (
 # 			r.custom_is_expired
 # 			or (r.expiry and getdate(r.expiry) < getdate(today()))
 # 			or (end and getdate(end) < getdate(today()))
 # 		)
-# 		if balance > 0 and expired:
-# 			status = "Expired"
 
-# 		data.append(
+# 		rows.append(
 # 			{
 # 				"employee": r.employee,
 # 				"employee_name": r.employee_name,
@@ -224,29 +249,17 @@
 # 				"division": r.division,
 # 				"department": r.department,
 # 				"work_date": r.work_from_date,
-# 				"credit": flt(r.credit),
-# 				"status": status,
-# 				"utilised": used,
+# 				"credit": balance,
+# 				"status": "Expired" if expired else "Available",
+# 				"utilised": 0.0,
 # 				"balance": balance,
 # 			}
 # 		)
 
-# 		for entry in usage[r.name].values():
-# 			app = entry["app"]
-# 			data.append(
-# 				{
-# 					"against_date": ", ".join(formatdate(d) for d in sorted(entry["dates"])),
-# 					"leave_application": app.name,
-# 					"from_date": app.from_date,
-# 					"to_date": app.to_date,
-# 					"credit": -flt(entry["days"]),
-# 					"status": "Draft" if app.docstatus == 0 else app.status,
-# 					"created_by": full_name(app.owner),
-# 					"modified_by": full_name(app.modified_by),
-# 				}
-# 			)
+# 	rows.sort(key=lambda x: (x["employee"], x["work_date"]))
+# 	return rows
 
-# 	return data
+
 
 
 import re
@@ -318,7 +331,7 @@ def parse_dates(value):
 
 def get_source_requests(app_names):
 	"""Leave Application -> set of Compensatory Leave Requests from the Table MultiSelect."""
-	if not app_names:
+	if not app_names or not frappe.db.exists("DocType", "Comp Off Source Request"):
 		return {}
 	meta = frappe.get_meta("Comp Off Source Request")
 	link_field = next(
@@ -359,11 +372,21 @@ def get_data(filters):
 		conditions += " and clr.work_from_date <= %(to_date)s"
 		values["to_date"] = filters["to_date"]
 
+	# custom_is_expired / expiry do not exist on every site (that was the
+	# "Unknown column 'clr.custom_is_expired'" error), so only select them when present
+	clr_meta = frappe.get_meta("Compensatory Leave Request")
+	expired_select = ", ".join(
+		[
+			"clr.custom_is_expired" if clr_meta.has_field("custom_is_expired") else "0 as custom_is_expired",
+			"clr.expiry" if clr_meta.has_field("expiry") else "NULL as expiry",
+		]
+	)
+
 	requests = frappe.db.sql(
 		f"""
 		select clr.name, clr.employee, clr.employee_name, clr.work_from_date,
 			clr.work_end_date, clr.half_day, clr.leave_allocation,
-			clr.custom_is_expired, clr.expiry,
+			{expired_select},
 			e.company, e.branch, e.department, {division_select} as division
 		from `tabCompensatory Leave Request` clr
 		inner join `tabEmployee` e on e.name = clr.employee
