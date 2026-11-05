@@ -370,15 +370,21 @@ def get_data(filters):
 	today_date = getdate()
 	rows = []
 	for r in requests:
+		# alloc = allocations.get(r.leave_allocation)
+
+		# # credit = leave allocation days, else computed from the request
+		# credit = 0.0
+		# if alloc:
+		# 	credit = flt(alloc.new_leaves_allocated) or flt(alloc.total_leaves_allocated)
+		# if not credit:
+		# 	end = r.work_end_date or r.work_from_date
+		# 	credit = 0.5 if r.half_day else float(date_diff(end, r.work_from_date) + 1)
+
 		alloc = allocations.get(r.leave_allocation)
 
-		# credit = leave allocation days, else computed from the request
-		credit = 0.0
-		if alloc:
-			credit = flt(alloc.new_leaves_allocated) or flt(alloc.total_leaves_allocated)
-		if not credit:
-			end = r.work_end_date or r.work_from_date
-			credit = 0.5 if r.half_day else float(date_diff(end, r.work_from_date) + 1)
+		# credit = days of this request only (the allocation is shared and cumulative)
+		end = r.work_end_date or r.work_from_date
+		credit = 0.5 if r.half_day else float(date_diff(end, r.work_from_date) + 1)
 
 		expiry = r.expiry or (alloc.to_date if alloc else None)
 		expired = r.custom_is_expired or (expiry and getdate(expiry) < today_date)
