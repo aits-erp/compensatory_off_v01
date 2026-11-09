@@ -519,6 +519,7 @@ def _build_rows(requests, employees, usages, leave_applications, filters):
 		work_dates = []
 		expiry_dates = []
 		per_application = {}
+		credit_rows = []
 
 		for request, _request_employee, usage_rows in items:
 			request_credit = _request_credit(request)
@@ -544,6 +545,22 @@ def _build_rows(requests, employees, usages, leave_applications, filters):
 					entry["dates"].append(work_date)
 				entry["amount"] += flt(usage["amount"])
 
+			# One positive row for each CLR keeps the earned credit traceable to
+			# the specific holiday on which the employee worked.  The debit row
+			# below remains consolidated by Leave Application.
+			credit_rows.append(
+				{
+					"work_date": work_date,
+					"credit": request_credit,
+					"status": _request_status(request),
+					"utilised": request_utilised or None,
+					"balance_credit": request_balance,
+					"creation": _value(request, "creation"),
+					"modified": _value(request, "modified"),
+					"expiry_date": expiry,
+				}
+			)
+
 		base = {
 			"employee": first_request.employee,
 			"employee_name": _value(employee, "employee_name") or _value(first_request, "employee_name"),
@@ -562,21 +579,17 @@ def _build_rows(requests, employees, usages, leave_applications, filters):
 			(name, entry) for name, entry in per_application.items() if leave_applications.get(name)
 		]
 
-		# credit that no Leave Application has used yet: one plain row
+		# Every CLR is an earned-credit row, whether or not a Leave Application
+		# has consumed it.  This is the positive (green) half of the ledger.
+		for credit_row in credit_rows:
+			rows.append({**base, **credit_row, "bold": 1})
+
+		# A CLR with no submitted Leave Application needs no debit row.
 		if not applications:
-			rows.append(
-				{
-					**base,
-					"work_date": first_work_date,
-					"credit": credit,
-					"status": request_status,
-					"utilised": None,
-					"balance_credit": balance,
-				}
-			)
 			continue
 
-		# used credit: ONE row per Leave Application with every detail on it
+		# The existing deduction mapping remains one row per Leave Application.
+		# Its Against Date cell lists every CLR work date that funded that leave.
 		for index, (leave_application_name, entry) in enumerate(applications):
 			leave_application = leave_applications[leave_application_name]
 			dates = sorted(set(entry["dates"]))
