@@ -596,7 +596,10 @@ def _build_rows(requests, employees, usages, leave_applications, filters):
 			rows.append(
 				{
 					**base,
-					"work_date": dates[0] if dates else first_work_date,
+					# Work Date belongs to the CLR credit rows above.  This is a
+					# Leave Application debit row, so the joined source dates are
+					# shown only under Against Date.
+					"work_date": None,
 					"against_date": ", ".join(formatdate(d) for d in dates),
 					"leave_application": leave_application_name,
 					"from_date": _value(leave_application, "from_date"),
